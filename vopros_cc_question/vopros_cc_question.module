@@ -1,0 +1,173 @@
+<?php
+/**
+ * @file
+ * Code for the Vopros Call Center Questions feature.
+ */
+
+include_once 'vopros_cc_question.features.inc';
+/**
+ * @file
+ * Code for the Vopros Call Center Question feature.
+ */
+
+/**
+ * Implements hook_entity_info().
+ */
+function vopros_cc_question_entity_info() {
+  $return = array(
+    'vopros_cc_question' => array(
+      'label' => t('Vopros Call Center Question'),
+      'controller class' => 'VoprosCallCenterQuestionEntityController',
+      'entity class' => 'VoprosCallCenterQuestion',
+      'base table' => 'vopros_cc_question',
+      'fieldable' => TRUE,
+      'uri callback' => 'entity_class_uri',
+      'entity keys' => array(
+        'id' => 'cc_question_id',
+        'label' => 'title',
+      ),
+      'bundles' => array(
+        'vopros_cc_question' => array(
+          'label' => t('Vopros Call Center Question'),
+          'admin' => array(
+            'path' => 'admin/vopros/cc-question',
+            'access arguments' => array('administer vopros call center questions'),
+          ),
+        ),
+      ),
+      'load hook' => 'vopros_cc_question_load',
+      'view modes' => array(
+        'administrator' => array(
+          'label' => t('Administrator'),
+          'custom settings' => FALSE,
+        ),
+      ),
+      'module' => 'vopros_cc_question',
+      'access callback' => 'vopros_cc_question_access',
+      // Handle the metadata.
+      'metadata controller class' => 'VoprosCallCenterQuestionMetadataController',
+      // Allow default views controller to create view data integration.
+      'views controller class' => 'VoprosCallCenterQuestionViewsController',
+      // Enable the entity API's admin UI.
+      'admin ui' => array(
+        'path' => 'admin/vopros/cc-question',
+        'file' => 'vopros_cc_question.admin.inc',
+        'controller class' => 'VoprosCallCenterQuestionUIController',
+      ),
+    ),
+  );
+
+  return $return;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function vopros_cc_question_permission() {
+  $permissions = array(
+    'administer vopros call center questions' => array(
+      'title' => t('Administer Vopros Call Center Questions'),
+      'restrict access' => TRUE,
+    ),
+    'access vopros call center questions' => array(
+      'title' => t('Access lists of Vopros Call Center Questions, primarily for viewing and referencing'),
+    ),
+    'create vopros call center questions' => array(
+      'title' => t('Create Vopros Call Center Questions'),
+    ),
+    'edit vopros call center questions' => array(
+      'title' => t('Edit and delete Vopros Call Center Questions'),
+      'restrict access' => TRUE,
+    ),
+  );
+
+  return $permissions;
+}
+
+/**
+ * Checks vendor category item access for various operations.
+ *
+ * @param $op
+ *   The operation being performed. One of 'view', 'update', 'create' or
+ *   'delete'.
+ * @param $entity
+ *   Optionally a Vopros Call Center Question or Vopros Call Center Question detail entity to check access for.
+ * @param $account
+ *   The user to check for. Leave it to NULL to check for the current user.
+ */
+function vopros_cc_question_access($op, $entity = NULL, $account = NULL) {
+  global $user;
+  $account = isset($account) ? $account : clone($user);
+
+  // Grant access to any operation for any call center question for administrators.
+  if (user_access('administer vopros call center questions', $account)) {
+    return TRUE;
+  }
+
+  if ($op == 'view') {
+    if (user_access('access vopros call center questions', $account)) {
+      return TRUE;
+    }
+  }
+
+  if ($op == 'create' && user_access('create vopros call center questions', $account)) {
+    return TRUE;
+  }
+
+  if ($op == 'update' || $op == 'delete') {
+    if (user_access('edit vopros call center questions', $account)) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Create a new Vopros Call Center Question object.
+ */
+function vopros_cc_question_new($values = array()) {
+  return entity_create('vopros_cc_question', $values);
+}
+
+/**
+ * Loads a Vopros Call Center Question by ID.
+ */
+function vopros_cc_question_load($cc_question_id, $reset = FALSE) {
+  $cc_question = vopros_cc_question_load_multiple(array($cc_question_id), array(), $reset);
+  return $cc_question ? reset($cc_question) : FALSE;
+}
+
+/**
+ * Loads multiple Vopros Call Center Questions by ID or based on a set of matching
+ * conditions.
+ *
+ * @see entity_load()
+ *
+ * @param $cc_question_ids
+ *   An array of Vopros Call Center Question IDs.
+ * @param $conditions
+ *   An array of conditions on the {vopros_cc_question} table in the form
+ *     'field' => $value.
+ * @param $reset
+ *   Whether to reset the internal loading cache.
+ *
+ * @return
+ *   An array of Vopros Call Center Question objects indexed by cc_question_id.
+ */
+function vopros_cc_question_load_multiple($cc_question_ids = FALSE, $conditions = array(), $reset = FALSE) {
+  return entity_load('vopros_cc_question', $cc_question_ids, $conditions, $reset);
+}
+
+/**
+ * Utility function to get the answer types for call center questions
+ */
+function vopros_cc_question_answer_types() {
+  $conf = variable_get('vopros_cc_question_answer_types', "Problem løst\nVideresendt\nSpørger går selv videre");
+  $values = explode("\n", $conf);
+  $options = array();
+  foreach ($values as $value) {
+    $options[$value] = $value;
+  }
+  return $options;
+}
